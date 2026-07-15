@@ -2,9 +2,7 @@
 
 Financial institutions investigate fraud, money laundering (AML), and
 sanctions violations using **separate systems, run by separate teams**.
-This means the same customer can be independently flagged by the Fraud
-team, the AML team, and Sanctions screening — with no one connecting
-the dots, because each team only sees its own alerts.
+This means the same customer can be independently flagged by the Fraud, AML, and Sanctions teams, with no unified view connecting related investigations across the organization.
 
 **Sentinel** solves two layered problems:
 1. **Alert fatigue** — most individual fraud alerts are false positives,
@@ -20,7 +18,7 @@ is also flagged elsewhere in the institution, and routes the case to
 every team that needs to know — not just the one that happened to catch
 it first.
 
-## Problem this solves
+## Problem Addressed
 
 - Industry-wide, false-positive rates on fraud alerts commonly run 90%+.
 - Fraud, AML, and Sanctions teams typically operate on separate systems
@@ -87,51 +85,88 @@ investigations with similar risk profiles from the audit log — "have we
 seen something like this before, and what did we decide?"
 ```
 
+## Screenshots
+
+### Swagger API Homepage
+
+Interactive FastAPI documentation exposing investigation, cross-silo routing, analyst feedback, and case retrieval endpoints.
+
+![Swagger API Homepage](screenshots/Swagger%20API%20Homepage.PNG)
+
+---
+
+### Fraud Investigation Response
+
+Fraud investigation output showing model predictions, SHAP explanations, and AI-generated analyst rationale.
+
+![Fraud Investigation Response](screenshots/Fraud%20Investigation%20Response.PNG)
+
+---
+
+### Cross-Silo Case Routing Response
+
+Cross-silo investigation identifying linked AML and sanctions findings and routing the case to the appropriate investigation teams.
+
+![Cross-Silo Case Routing Response](screenshots/Cross-Silo%20Case%20Routing%20Response.PNG)
+
+---
+
+### Multi-Agent Cross-Silo Investigation Result
+
+End-to-end investigation workflow combining fraud analysis, case linking, and AI-driven routing decisions.
+
+![Multi-Agent Cross-Silo Investigation Result](screenshots/Multi-Agent%20Cross-Silo%20Investigation%20Result.PNG)
+
+---
+
+### System Architecture
+
+High-level architecture illustrating the multi-agent investigation workflow and supporting components.
+
+![System Architecture](screenshots/Architecture%20Diagram.PNG)
+
+
 ## Tech Stack
 
 Python · FastAPI · XGBoost · Isolation Forest · SHAP · PydanticAI ·
 Multi-Agent Orchestration · NetworkX (Case Linking Graph) · MongoDB Atlas ·
 LangSmith · Docker · Analyst Feedback Loop · Drift Monitoring
 
-## Project structure
+## Project Structure
 
-```
+```text
 sentinel-fraud-ai/
 ├── app/
 │   ├── main.py                  # FastAPI entrypoint
 │   ├── config.py                # settings from .env
 │   ├── models/
-│   │   ├── schemas.py           # Pydantic request/response models
-│   │   └── ml_models.py         # loads XGBoost/Isolation Forest
+│   │   ├── schemas.py
+│   │   └── ml_models.py
 │   ├── agents/
 │   │   ├── investigator_agent.py
 │   │   ├── disposition_agent.py
-│   │   ├── case_routing_agent.py    # cross-silo team routing
+│   │   ├── case_routing_agent.py
 │   │   └── prompts.py
 │   ├── services/
-│   │   ├── network_analysis.py  # NetworkX shared-entity checks (fraud only)
-│   │   ├── case_linking.py      # NetworkX cross-silo graph (fraud+AML+sanctions)
-│   │   ├── case_retrieval.py    # similar past case lookup
+│   │   ├── network_analysis.py
+│   │   ├── case_linking.py
+│   │   ├── case_retrieval.py
 │   │   ├── shap_explainer.py
-│   │   ├── audit_logger.py      # MongoDB writes
-│   │   ├── feedback_loop.py     # analyst override tracking
-│   │   └── tracing.py           # LangSmith setup
+│   │   ├── audit_logger.py
+│   │   ├── feedback_loop.py
+│   │   └── tracing.py
 │   ├── db/
 │   │   └── mongo_client.py
 │   └── routers/
-│       └── alerts.py            # API + feedback + case routing endpoints
+│       └── alerts.py
 ├── ml/
-│   ├── train_xgboost.py
-│   ├── train_isolation_forest.py
-│   ├── evaluate.py
-│   └── monitor_drift.py         # weekly drift check
 ├── data/
-│   ├── raw/                     # transactions.csv, aml_alerts.csv, sanctions_hits.csv
-│   └── processed/                # trained models, metrics.json
-├── tests/
+├── dashboard/
+│   └── app.py
+├── docs/
+├── screenshots/
 ├── scripts/
-│   ├── seed_synthetic_alerts.py
-│   └── seed_aml_sanctions_signals.py
+├── tests/
 ├── Dockerfile
 ├── docker-compose.yml
 ├── requirements.txt
@@ -143,7 +178,7 @@ sentinel-fraud-ai/
 ### 1. Clone and install
 
 ```bash
-git clone https://github.com/<your-username>/sentinel-fraud-ai.git
+git clone https://github.com/Shraddhatodkari/sentinel-fraud-ai.git
 cd sentinel-fraud-ai
 python -m venv venv
 source venv/bin/activate        # Windows: venv\Scripts\activate
@@ -157,10 +192,10 @@ cp .env.example .env
 ```
 
 Fill in:
-- `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` — for the Disposition Agent
-- `MONGODB_URI` — free cluster at https://www.mongodb.com/cloud/atlas
-- `LANGCHAIN_API_KEY` — free account at https://smith.langchain.com
-
+- `GOOGLE_API_KEY` — Google Gemini API key
+- `MONGODB_URI` — MongoDB Atlas connection string
+- `LANGCHAIN_API_KEY` — LangSmith API key
+  
 ### 3. Generate data and train models
 
 ```bash
@@ -236,9 +271,15 @@ curl -X POST http://localhost:8000/alerts/investigate-case \
 pytest tests/ -v
 ```
 
-## Benchmark results
+## Benchmark Results
 
-Run `python ml/evaluate.py` and paste your results here, e.g.:
+Run the evaluation script:
+
+```bash
+python -m ml.evaluate
+```
+
+Example output:
 
 ```json
 {
@@ -309,21 +350,9 @@ Opens at `http://localhost:8501` with 5 pages:
 - **Overview** — alert volume, auto-clear rate, benchmark metrics
 - **Case Detail** — risk scores, fraud probability, cross-silo AML/Sanctions findings for one transaction
 - **Relationship Graph** — interactive graph of shared devices/IPs/beneficiaries (pyvis)
-- **Audit Log** — table of logged decisions (reads from MongoDB, or a local export — see below)
+- **Audit Log** — table of investigation decisions stored in MongoDB Atlas
 - **Investigation Report** — auto-generated plain-English case summary
 
-To populate the Audit Log page without a live DB connection during a
-demo session:
-```bash
-python scripts/export_audit_logs_demo.py
-```
-
-## Screenshots
-
-See `docs/screenshots/` — includes a real relationship graph rendered
-directly from this project's synthetic fraud-ring data (`relationship_graph.png`).
-Capture the rest yourself once the dashboard is running (see the
-step-by-step guide below).
 
 ## Roadmap / possible extensions
 
